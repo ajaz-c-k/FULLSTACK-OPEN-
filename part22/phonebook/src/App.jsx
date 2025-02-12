@@ -1,102 +1,103 @@
-import { useState, useEffect } from 'react'
-import Filter from './components/Filter'
-import PersonForm from './components/PersonForm'
-import PersonsList from './components/PersonsList'
-import { getPersons, addPersons, deletePerson, updatePerson } from './services/persons'
-import Notification from './components/Notification'
+import React, { useState } from 'react';
 
 const App = () => {
-  const [persons, setPersons] = useState([])
-  const [personsFilter, setPersonsFilter] = useState([])
-  const [newName, setNewName] = useState('')
-  const [newNumber, setNewNumber] = useState('')
-  const [message, setMessage] = useState(null)
-  const [notificationStyle, setNotificationStyle] = useState({})
+  const [contacts, setContacts] = useState([
+    { id: 1, name: 'Akshay', number: '+91 123 456 7890' },
+    { id: 2, name: 'Adwaith', number: '+91 20 7946 0958' },
+    { id: 3, name: 'Abinav', number: '+91 98765 43210' },
+  ]);
 
-  useEffect(() => {
-    getPersons().then(response => {
-      setPersons(response)
-      setPersonsFilter(response)
-    })
-  }, [])
+  const [newName, setNewName] = useState('');
+  const [newNumber, setNewNumber] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const addPerson = (event) => {
-    event.preventDefault()
-    const elementFound = persons.find((element) => element.name == newName)
-    if ( elementFound !== undefined) {
-      const confirmUpdate = window.confirm(`${newName} is already added to phonebook, Do you want update information?`)
-      if (confirmUpdate) {
-        const personModify = {...elementFound, number: newNumber}
-        updatePerson(elementFound.id, personModify)
-        // Notification message
-        setMessage(`Changed number of ${elementFound.name}`)
-        setNotificationStyle({color: 'green'})
-        setTimeout(() => {
-          setMessage(null)
-        }, 5000)
-      }
-    } else {
-      const newId = persons.length+1
-      const personToAdd = { name: newName, number: newNumber, id: String(newId)} 
-      addPersons(personToAdd)
-        .then(() => {
-          setNewName('')
-          setNewNumber('')
-          // Notification message
-          setMessage(`Added ${personToAdd.name}`)
-          setNotificationStyle({color: 'green'})
-          setTimeout(() => {
-            setMessage(null)
-          }, 5000)
-        })
+  // Add a new contact
+  const addContact = (event) => {
+    event.preventDefault();
+    if (!newName || !newNumber) return;
+
+    const duplicate = contacts.some(
+      (contact) => contact.name.toLowerCase() === newName.toLowerCase()
+    );
+    if (duplicate) {
+      alert('Name already exists in phonebook!');
+      return;
     }
-  }
 
-  const inputName = (event) => {
-    event.preventDefault()
-    setNewName(event.target.value)
-  }
-  const inputNumber = (event) => {
-    event.preventDefault()
-    setNewNumber(event.target.value)
-  }
-  const inputFilter = (event) => {
-    event.preventDefault()
-    setPersonsFilter(persons.filter((el) => el.name.toLowerCase().includes(event.target.value.toLowerCase())))
-  }
+    const newContact = {
+      id: contacts.length + 1,
+      name: newName,
+      number: newNumber,
+    };
 
-  const clickDelete = (person) => {
-    if (window.confirm(`Do you really want to delete ${person.name}?`)) {
-      deletePerson(person.id)
-        .then(() => {
-          // Notification message
-          setMessage(`Deleted ${person.name}`)
-          setNotificationStyle({color: 'red'})
-          setTimeout(() => {
-            setMessage(null)
-          }, 5000)
-        })
-        .catch(() => {
-          setMessage(`Information of '${person.name}' was already removed from server`)
-          setNotificationStyle({color: 'red'})
-          setTimeout(() => {
-            setMessage(null)
-          }, 5000)
-        })
-    }
-  }
+    setContacts([...contacts, newContact]);
+    setNewName('');
+    setNewNumber('');
+  };
+
+  // Find contact by phone number
+  const searchedContact = contacts.find((contact) =>
+    contact.number.includes(searchQuery)
+  );
 
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification styles={notificationStyle} message={message}/>
-      <Filter onChangeHandle={inputFilter} />
-      <h3>add a new</h3>
-      <PersonForm submitForm={addPerson} nameValue={newName} nameHandle={inputName} numberValue={newNumber} numberHandle={inputNumber} />
-      <h2>Numbers</h2>
-      <PersonsList personArray={personsFilter} deleteHandle={clickDelete} />
-    </div>
-  )
-}
 
-export default App
+      {/* Add Contact Form */}
+      <form onSubmit={addContact}>
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Enter name"
+          required
+        />
+        <input
+          type="text"
+          value={newNumber}
+          onChange={(e) => setNewNumber(e.target.value)}
+          placeholder="Enter phone number"
+          required
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      {/* Search Section */}
+      <h3>Search Contact by Phone Number</h3>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Enter phone number"
+      />
+
+      {/* Display Search Result Twice */}
+      <h3>Search Result</h3>
+      {searchQuery ? (
+        searchedContact ? (
+          <>
+            <p>{searchedContact.name} - {searchedContact.number}</p>
+            <p>{searchedContact.name} - {searchedContact.number}</p>
+          </>
+        ) : (
+          <p>No contact found</p>
+        )
+      ) : (
+        <p>Enter a phone number to search</p>
+      )}
+
+      {/* Display All Contacts */}
+      <h3>All Contacts</h3>
+      <ul>
+        {contacts.map((contact) => (
+          <li key={contact.id}>
+            {contact.name} - {contact.number}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default App;
